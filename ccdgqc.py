@@ -9,12 +9,13 @@ import webbrowser
 # from .classes.woid import Woid
 
 # declare global var, list, dictionaries
-aligned_samples = dict()
-compute_header_fields = list()
 woid = ''
 
 # current mmddyy
 mm_dd_yy = datetime.datetime.now().strftime("%m%d%y")
+#date mm-dd-yy
+date = datetime.datetime.now().strftime("%m-%d-%y")
+
 
 
 def main():
@@ -58,17 +59,23 @@ def main():
                 print("\nwoid must be a number.")
                 continue
 
-            user_decision = str(input('\n1)Print sample link and create file?\n2)Input file name?\n3)(enter to exit)\n'))
+            collection = assign_collections()
+            print('Using {} for collection'.format(collection))
+
+            user_decision = str(input('\n1)Print sample link and create file\n2)Input file name\n3)(enter to exit)\n'))
             if user_decision == '1':
                 computeworkflow_file = user_make_computeworkflow(woid)
                 print('{} created'.format(computeworkflow_file))
             elif user_decision == '2':
                 computeworkflow_file = input('Enter computeworkflow file:\n')
+                if len(computeworkflow_file) == 0:
+                    print()
                 if not os.path.exists(computeworkflow_file):
                     print('{} file not found\n')
                     quit()
-                if os.path.exists(computeworkflow_file):
+                elif os.path.exists(computeworkflow_file):
                     print('File found, using {} for QC.\n'.format(computeworkflow_file))
+
             elif len(user_decision) == 0:
                 print('Exiting ccdg launcher.')
                 break
@@ -76,18 +83,35 @@ def main():
                 print('Please enter 1 or 2\n')
                 continue
 
+            alligned_samples = filter_computeworkflow(computeworkflow_file, woid)
+            print(alligned_samples)
+
     if (args.c and not args.f):
-        print('Input computeworkflow file with -f.')
+        print('-f <computeworkflow file required>.')
         quit()
 
     if (args.f and not args.c):
-        print('Input collaborator with -c')
+        print('-c <collection required>')
         quit()
 
     if (args.f and args.c):
         print('cool')
 
 
+def assign_collections():
+    ap = int(input('\nCollections:\n1)TOPMed Harvard Genetic Epidemiology of COPD\n2)TOPMed Mount Sinai BioMe '
+                   'COPD\n3)TOPMed Univ of Colorado Denver IPF\n4)User input\n').strip())
+    if ap == 1:
+        collection = 'Silverman (Harvard) - COPD'
+    if ap == 2:
+        collection = 'Mount Sinai BioMe Biobank - COPD'
+    if ap == 3:
+        collection = 'Familial and Sporadic Idiopathic Pulmonary Fibrosis'
+    if ap == 4:
+        collection = input('Input collections:\n')
+    return collection
+
+#command line create computeworkflow file with all statuses
 def user_make_computeworkflow(woid):
     outfile = woid + '.computeworkflow.'+mm_dd_yy+'.tsv'
     print('\nComputeworkflow link:\nhttps://imp-lims.gsc.wustl.edu/entity/compute-workflow-execution?setup_wo_id={}\nEnter samples:'.format(woid))
@@ -124,10 +148,16 @@ def make_dir(directory_in):
     return new_directory
 
 
-# create compute workflow file with only 'Aligned Bam To BQSR Cram And VCF' samples
-def create_computeworkflow():
+# create compute workflow outfile and write header
+#create dir file and write header
+#populate alligned_samples with samples ready for QC
 
-    with open(args.c) as computecsv, open(qc_computeworkflow_outfile, 'w') as outcsv, open(qc_dir_file, 'w') as dircsv:
+def filter_computeworkflow(computeworkflow_infile, woid):
+    aligned_samples = dict()
+    compute_header_fields = list()
+    computeworkflow_outfile = woid +'.cw.alligned.'+ mm_dd_yy+'.tsv'
+    dir_file = woid+'.working.directory.tsv'
+    with open(computeworkflow_infile) as computecsv, open(computeworkflow_outfile, 'w') as outcsv, open(dir_file, 'w') as dircsv:
         reader = csv.DictReader(computecsv, delimiter="\t")
         compute_header_fields = reader.fieldnames
         writer = csv.DictWriter(outcsv, compute_header_fields, delimiter="\t")
@@ -141,6 +171,7 @@ def create_computeworkflow():
             if (line['Status'] == 'completed') and (line['Protocol'] == 'Aligned Bam To BQSR Cram And VCF') \
                     and (line['Work Order'] == woid):
                 aligned_samples[line['Sample Full Name']] = line
+    return aligned_samples
 
 if __name__ == '__main__':
     main()
