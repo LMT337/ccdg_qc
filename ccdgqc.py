@@ -55,8 +55,8 @@ def main():
                 print("\nwoid must be a number.")
                 continue
 
-            collection = assign_collections()
-            print('Using {} for collection'.format(collection))
+            collection = assign_collections(woid)
+            print('Using \'{}\' for collection'.format(collection))
 
             user_decision = str(input('\n1)Print sample link and create file\n2)Input file name\n3)(enter to exit)\n'))
             if user_decision == '1':
@@ -96,17 +96,18 @@ def main():
         print('cool')
 
 
-def assign_collections():
-    ap = int(input('\nCollections:\n1)TOPMed Harvard Genetic Epidemiology of COPD\n2)TOPMed Mount Sinai BioMe '
-                   'COPD\n3)TOPMed Univ of Colorado Denver IPF\n4)User input\n').strip())
-    if ap == 1:
-        collection = 'Silverman (Harvard) - COPD'
-    if ap == 2:
-        collection = 'Mount Sinai BioMe Biobank - COPD'
-    if ap == 3:
-        collection = 'Familial and Sporadic Idiopathic Pulmonary Fibrosis'
-    if ap == 4:
-        collection = input('Input collections:\n')
+def assign_collections(woid):
+
+    # get cod for woid
+    admin_collections = subprocess.check_output(["wo_info", "--report", "billing", "--woid", woid]).decode(
+        'utf-8').splitlines()
+
+    collection = ''
+    for ap in admin_collections:
+        print(ap)
+        if 'Administration Project' in ap:
+            collection = ap.split(':')[1].strip()
+
     return collection
 
 #command line create computeworkflow file with all statuses
