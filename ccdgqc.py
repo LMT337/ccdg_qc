@@ -6,16 +6,12 @@ import datetime
 import argparse
 import webbrowser
 
-# from .classes.woid import Woid
-
-# declare global var, list, dictionaries
-woid = ''
-
 # current mmddyy
 mm_dd_yy = datetime.datetime.now().strftime("%m%d%y")
 #date mm-dd-yy
 date = datetime.datetime.now().strftime("%m-%d-%y")
 
+compute_header_fields = list()
 
 
 def main():
@@ -83,8 +79,10 @@ def main():
                 print('Please enter 1 or 2\n')
                 continue
 
-            alligned_samples = filter_computeworkflow(computeworkflow_file, woid)
-            print(alligned_samples)
+            aligned_samples = filter_computeworkflow(computeworkflow_file, woid)
+            qc_status_update(woid, aligned_samples, collection)
+
+
 
     if (args.c and not args.f):
         print('-f <computeworkflow file required>.')
@@ -147,15 +145,13 @@ def make_dir(directory_in):
                 break
     return new_directory
 
-
 # create compute workflow outfile and write header
 #create dir file and write header
 #populate alligned_samples with samples ready for QC
-
 def filter_computeworkflow(computeworkflow_infile, woid):
     aligned_samples = dict()
     compute_header_fields = list()
-    computeworkflow_outfile = woid +'.cw.alligned.'+ mm_dd_yy+'.tsv'
+    computeworkflow_outfile = woid +'.cw.aligned.'+ mm_dd_yy+'.tsv'
     dir_file = woid+'.working.directory.tsv'
     with open(computeworkflow_infile) as computecsv, open(computeworkflow_outfile, 'w') as outcsv, open(dir_file, 'w') as dircsv:
         reader = csv.DictReader(computecsv, delimiter="\t")
@@ -172,6 +168,52 @@ def filter_computeworkflow(computeworkflow_infile, woid):
                     and (line['Work Order'] == woid):
                 aligned_samples[line['Sample Full Name']] = line
     return aligned_samples
+
+#assign qc status to status csv, write computeworkflow for qc and directory file
+def qc_ready(sample, woid, aligned_samples, collection):
+    computeworkflow_outfile = woid + '.cw.aligned.' + mm_dd_yy + '.tsv'
+    dir_file = woid + '.working.directory.tsv'
+
+    with open(computeworkflow_outfile) as headercsv:
+        header = csv.DictReader(headercsv, delimiter='\t')
+        compute_header_fields = header.fieldnames
+
+    if sample in aligned_samples:
+        with open(computeworkflow_outfile, 'a') as outcsv, open(dir_file, 'a') as dircsv:
+            writer = csv.DictWriter(outcsv, compute_header_fields, delimiter="\t")
+            dirwriter = csv.writer(dircsv)
+            dirwriter.writerow([aligned_samples[sample]['Working Directory'] + '/'])
+            writer.writerow(aligned_samples[sample])
+        qc_update = {'QC Status': 'QC Complete',
+                     'QC Date': date,
+                     'COD Collaborator': collection}
+    else:
+        qc_update = {'QC Status': 'NONE',
+                     'QC Date': 'NONE',
+                     'COD Collaborator': 'NONE'}
+
+    return qc_update
+
+def qc_status_update(woid, aligned_samples, collection):
+    qc_status = woid + '.qcstatus.tsv'
+    temp_status = woid + '.qcstatus.tmp.tsv'
+    with open(qc_status, 'r') as qcstatuscsv, open(temp_status, 'w') as qcstatus_temp_csv:
+
+        qc_status_reader = csv.DictReader(qcstatuscsv, delimiter="\t")
+        header_fields = qc_status_reader.fieldnames
+
+        qcs_temp_csv = csv.DictWriter(qcstatus_temp_csv, header_fields, delimiter="\t")
+        qcs_temp_csv.writeheader()
+
+        qc_update = {}
+        for qc_status_line in qc_status_reader:
+            if (qc_status_line['Launch Status'] == 'Launched' and  qc_status_line['QC Status'] == 'NONE'):
+                qc_update = qc_ready(qc_status_line['QC Sample'], woid, aligned_samples, collection)
+                master_qc_update = dict(list(qc_status_line.items()) + list(qc_update.items()))
+                qcs_temp_csv.writerow(master_qc_update)
+            else:
+                qcs_temp_csv.writerow(qc_status_line)
+    return
 
 if __name__ == '__main__':
     main()
