@@ -148,16 +148,13 @@ def main():
 
                     for line in qc_output:
 
-                        samples_found = ''
-
                         if 'Total Samples QC\'ed' in line:
                             qc_results['Sample QC'] = line.split(':')[1].strip()
-                            samples_found = line.split(':')[1].strip()
+                            qc_process['Sample QC'] = line.split(':')[1].strip()
 
                         if 'Attachments' in line:
                             qc_process['WOID'] = woid
                             qc_process['Collection'] = collection
-                            qc_process['Sample QC'] = samples_found
                             qc_process['QC Date'] = date
 
                             qc_results['QC Directory'] = qc_dir
@@ -192,7 +189,7 @@ def main():
                     qcwrite.writerow(qc_results)
                     if len(qc_process) != 0:
                         qcprocess_write.writerow(qc_process)
-                        
+
                     print('QC FINISHED\n----------')
 
                 else:
