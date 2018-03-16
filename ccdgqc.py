@@ -102,8 +102,7 @@ def main():
     if (args.f):
 
         qc_fieldnames = ['WOID', 'Collection', 'Sample QC', 'QC Directory', 'QC Date']
-        qc_results = dict()
-        qc_process = dict()
+
         qc_summary_outfile = 'qc.summary.' + mm_dd_yy + '.' + hour_min + '.tsv'
         qc_process_outfile = 'qc.process.' + mm_dd_yy + '.' + hour_min + '.tsv'
         computeworkflow_all_file = args.f
@@ -120,6 +119,8 @@ def main():
             for woid in filter(is_int, woid_dirs):
 
                 collection = assign_collections(woid)
+                qc_results = dict()
+                qc_process = dict()
 
                 status_file = woid + '.qcstatus.tsv'
                 os.chdir(qc_working_dir)
@@ -130,6 +131,7 @@ def main():
                 qc_results['WOID'] = woid
                 qc_results['QC Date'] = date
                 qc_results['Collection'] = collection
+                qc_results['Sample QC'] = 'NA'
 
 
                 if os.path.exists(woid + '/' + status_file):
@@ -146,15 +148,11 @@ def main():
 
                     for line in qc_output:
 
-                        # print(line)
                         samples_found = ''
 
-                        if 'QC was run on' in line:
-                            qc_results['Sample QC'] = line
-                            samples_found = line
-
-                        if 'No samples found to QC' in line:
-                            qc_results['Sample QC'] = line
+                        if 'Total Samples QC\'ed' in line:
+                            qc_results['Sample QC'] = line.split(':')[1].strip()
+                            samples_found = line.split(':')[1].strip()
 
                         if 'Attachments' in line:
                             qc_process['WOID'] = woid
@@ -162,12 +160,11 @@ def main():
                             qc_process['Sample QC'] = samples_found
                             qc_process['QC Date'] = date
 
-                            # qc_dir = line.split(':')[1].strip()
                             qc_results['QC Directory'] = qc_dir
                             qc_process['QC Directory'] = qc_dir
                             os.chdir(qc_dir)
 
-                            subprocess.run(["/gscuser/zskidmor/bin/python3", "/gscuser/awollam/aw/totalbasesKB.py"])
+                            subprocess.run(["/gscuser/zskidmor/bin/python3", "/gscuser/awollam/aw/tkb.py"])
 
                             attachments = 'attachments/'
                             os.makedirs('attachments')
@@ -181,8 +178,8 @@ def main():
                             qc_files = [qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.qcpass.samplemap.tsv',
                                         qc_file_prefix + '.report']
 
-                            num_lines = sum(1 for line in open(qc_file_prefix + '.build38.fail.tsv'))
-                            if num_lines > 1:
+                            num_fail_lines = sum(1 for line in open(qc_file_prefix + '.build38.fail.tsv'))
+                            if num_fail_lines > 1:
                                 qc_files.append(qc_file_prefix + '.build38.fail.tsv')
 
                             for file in qc_files:
@@ -193,7 +190,9 @@ def main():
                             os.rename(qc_file_prefix + '.build38.all.tsv.backup', qc_file_prefix + '.build38.all.tsv')
 
                     qcwrite.writerow(qc_results)
-                    qcprocess_write.writerow(qc_process)
+                    if len(qc_process) != 0:
+                        qcprocess_write.writerow(qc_process)
+                        
                     print('QC FINISHED\n----------')
 
                 else:
@@ -409,7 +408,7 @@ def qc_run(woid):
         os.remove(temp_status)
         os.remove(computeworkflow_outfile)
         os.remove(dir_file)
-        qc_report = str('No samples found to QC')
+        qc_report = 'No samples found to QC.'
 
     if os.path.exists(temp_status):
         os.rename(temp_status, qc_status)
