@@ -288,7 +288,7 @@ def filter_computeworkflow(computeworkflow_infile, woid):
         for line in reader:
             if not line['DNA']:
                 continue
-            if (line['Status'] == 'completed') and (line['Protocol'] == 'Aligned Bam To BQSR Cram And VCF') \
+            if (line['Status'] == 'completed') and (line['Protocol'] == 'Aligned Bam To BQSR Cram And VCF Without Genotype') \
                     and (line['Work Order'] == woid):
                 aligned_samples[line['DNA']] = line
 
@@ -415,11 +415,11 @@ def qc_run(woid):
         qc_dir = make_dir(directory, sample_number)
 
         # old_qco = woid + '/' + computeworkflow_outfile
-        new_qco = qc_dir + computeworkflow_outfile
+        new_qco = qc_dir + '/' +computeworkflow_outfile
         copyfile(computeworkflow_outfile, new_qco)
 
         # old_wd = cwd + '/' + dir_file
-        new_wd = qc_dir + dir_file
+        new_wd = qc_dir + '/' + dir_file
         copyfile(dir_file, new_wd)
 
         yaml_dir = qc_working_dir + '/' + woid +  '/' + qc_dir + '/yaml'
