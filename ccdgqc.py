@@ -418,8 +418,6 @@ def qc_status_update(woid, aligned_samples, collection):
                 qcs_temp_csv.writerow(master_qc_update)
             else:
                 qcs_temp_csv.writerow(qc_status_line)
-
-    os.rename(temp_status, qc_status)
     return
 
 
