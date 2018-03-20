@@ -7,7 +7,6 @@ mm_dd_yy = datetime.datetime.now().strftime("%m%d%y")
 date = datetime.datetime.now().strftime("%m-%d-%y")
 hour_min = datetime.datetime.now().strftime("%H%M")
 
-
 qc_working_dir = '/gscmnt/gc2783/qc/CCDGWGS2018/dev'
 os.chdir(qc_working_dir)
 
@@ -119,6 +118,7 @@ def main():
                                             "-w", woid])
 
                             os.chdir(qc_dir)
+                            print('-------\nRunning tkb.py-------\n')
                             subprocess.run(["/gscuser/zskidmor/bin/python3", "/gscuser/awollam/aw/tkb.py"])
 
                             attachments = 'attachments/'
@@ -148,10 +148,13 @@ def main():
                             os.rename(qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.build38.totalBasesKB.tsv')
                             os.rename(qc_file_prefix + '.build38.all.tsv.backup', qc_file_prefix + '.build38.all.tsv')
 
+                            os.chdir(attachments)
+                            add_collections_allfile(qc_file_prefix + '.build38.all.tsv', collection)
+
                     print('QC FINISHED\n----------')
 
                 else:
-                    
+
                     print('No {} found, skipping QC for {}.'.format(status_file, woid))
                     print('QC FINISHED\n----------')
 
@@ -220,6 +223,7 @@ def main():
                                             "-w", woid])
 
                             os.chdir(qc_dir)
+                            print('-------\nRunning tkb.py-------\n')
                             subprocess.run(["/gscuser/zskidmor/bin/python3", "/gscuser/awollam/aw/tkb.py"])
 
                             attachments = 'attachments/'
@@ -238,12 +242,17 @@ def main():
                             if num_fail_lines > 1:
                                 qc_files.append(qc_file_prefix + '.build38.fail.tsv')
 
+                            print('Files copied to attachments directory:')
                             for file in qc_files:
                                 print(file)
                                 copyfile(file, attachments + file)
 
                             os.rename(qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.build38.totalBasesKB.tsv')
                             os.rename(qc_file_prefix + '.build38.all.tsv.backup', qc_file_prefix + '.build38.all.tsv')
+
+                            os.chdir(attachments)
+                            add_collections_allfile(qc_file_prefix + '.build38.all.tsv', collection)
+
 
                     qcwrite.writerow(qc_results)
                     if len(qc_process) != 0:
@@ -406,6 +415,7 @@ def qc_status_update(woid, aligned_samples, collection):
             else:
                 qcs_temp_csv.writerow(qc_status_line)
 
+    os.rename(temp_status, qc_status)
     return
 
 
@@ -525,6 +535,28 @@ def qc_run(woid):
         os.rename(temp_status, qc_status)
 
     return qc_report, qc_dir
+
+
+#add admin project to all file in attachment dir
+def add_collections_allfile(all_file, collection):
+
+    all_temp_file = all_file + '.temp'
+
+    with open(all_file, 'r') as all_filecsv, open(all_temp_file, 'w') as all_temp_filecsv:
+        all_file_reader = csv.DictReader(all_filecsv, delimiter='\t')
+        header = all_file_reader.fieldnames
+        header.append('Admin Project')
+
+        all_temp_file_writer = csv.DictWriter(all_temp_filecsv, fieldnames=header, delimiter='\t')
+        all_temp_file_writer.writeheader()
+
+        for line in all_file_reader:
+            line['Admin Project'] = collection
+            all_temp_file_writer.writerow(line)
+
+    os.rename(all_temp_file, all_file)
+
+    return all_file
 
 
 if __name__ == '__main__':
