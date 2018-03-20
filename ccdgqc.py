@@ -34,6 +34,7 @@ def main():
     args = parser.parse_args()
 
     if args.l:
+
         woid = os.path.basename(os.getcwd())
         firefox_path = '/gapp/ia32linux/bin/firefox %s'
         compute_workflow_url = 'https://imp-lims.gsc.wustl.edu/entity/compute-workflow-execution?_show_result_set_' \
@@ -49,9 +50,12 @@ def main():
         quit()
 
     if args.m:
+
         while True:
+
             os.chdir(qc_working_dir)
             woid = input('----------\nWork order id (enter to exit):\n').strip()
+
             # if not woid:
             if (len(woid) == 0):
                 print('Exiting ccdg launcher.')
@@ -63,15 +67,20 @@ def main():
                 continue
 
             if woid in woid_dirs:
+
                 collection = assign_collections(woid)
                 print('Using \'{}\' for collection.'.format(collection))
+                user_decision = str(input('\n1)Print sample link and create file\n2)Input file name\n3)'
+                                          '(enter to exit)\n'))
 
-                user_decision = str(input('\n1)Print sample link and create file\n2)Input file name\n3)(enter to exit)\n'))
                 if user_decision == '1':
+
                     os.chdir(woid)
                     computeworkflow_file = user_make_computeworkflow(woid)
                     print('{} created'.format(computeworkflow_file))
+
                 elif user_decision == '2':
+
                     computeworkflow_file = input('Enter computeworkflow file:\n')
                     if len(computeworkflow_file) == 0:
                         print()
@@ -79,25 +88,72 @@ def main():
                         print('\n{} file not found\n'.format(computeworkflow_file))
 
                     elif os.path.exists(computeworkflow_file):
-                        print('File found, using {} for QC.\n'.format(computeworkflow_file))
+                        print('\nFile found, using {} for QC.'.format(computeworkflow_file))
                         header_fix(computeworkflow_file)
                         copyfile(computeworkflow_file, woid+'/'+computeworkflow_file)
                         os.chdir(woid)
+
                 elif len(user_decision) == 0:
+
                     print('Exiting ccdg launcher.')
                     break
+
                 else:
+
                     print('Please enter 1 or 2\n')
                     continue
 
-                aligned_samples = filter_computeworkflow(computeworkflow_file, woid)
-                qc_status_update(woid, aligned_samples, collection)
-                qc_run(woid)
-                os.remove(computeworkflow_file)
+                status_file = woid + '.qcstatus.tsv'
+                if os.path.exists(status_file):
 
-            else:
-                print('{} not found.'.format(woid))
-                exit()
+                    aligned_samples = filter_computeworkflow(computeworkflow_file, woid)
+                    qc_status_update(woid, aligned_samples, collection)
+                    qc_output, qc_dir = qc_run(woid)
+                    os.remove(computeworkflow_file)
+
+                    for line in qc_output:
+
+                        if 'Attachments' in line:
+
+                            subprocess.run(["/gscuser/awagner/bin/python3", "/gscuser/awollam/aw/ccdg_zero_restore.py",
+                                            "-w", woid])
+
+                            os.chdir(qc_dir)
+                            subprocess.run(["/gscuser/zskidmor/bin/python3", "/gscuser/awollam/aw/tkb.py"])
+
+                            attachments = 'attachments/'
+                            os.makedirs('attachments')
+
+                            qc_dir_name = os.path.basename(qc_dir).split('.')[1:]
+                            qc_file_prefix = woid + '.' + qc_dir_name[0] + '.' + qc_dir_name[1]
+
+                            os.rename(qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.build38.all.tsv.backup')
+                            os.rename(qc_file_prefix + '.build38.totalBasesKB.tsv', qc_file_prefix + '.build38.all.tsv')
+
+                            qc_files = [qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.report']
+
+                            num_fail_lines = sum(1 for line in open(qc_file_prefix + '.build38.fail.tsv'))
+                            if num_fail_lines > 1:
+                                qc_files.append(qc_file_prefix + '.build38.fail.tsv')
+
+                            num_samplemap_lines = sum(1 for line in open(qc_file_prefix + '.qcpass.samplemap.tsv'))
+                            if num_samplemap_lines > 1:
+                                qc_files.append(qc_file_prefix + '.qcpass.samplemap.tsv')
+
+                            print('Files copied to attachments directory:')
+                            for file in qc_files:
+                                print(file)
+                                copyfile(file, attachments + file)
+
+                            os.rename(qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.build38.totalBasesKB.tsv')
+                            os.rename(qc_file_prefix + '.build38.all.tsv.backup', qc_file_prefix + '.build38.all.tsv')
+
+                    print('QC FINISHED\n----------')
+
+                else:
+                    
+                    print('No {} found, skipping QC for {}.'.format(status_file, woid))
+                    print('QC FINISHED\n----------')
 
     if (args.f):
 
@@ -108,7 +164,8 @@ def main():
         computeworkflow_all_file = args.f
         header_fix(computeworkflow_all_file)
 
-        with open(qc_summary_outfile, 'w') as qc_summary_outfilecsv, open(qc_process_outfile,'w') as qc_process_outfilecsv:
+        with open(qc_summary_outfile, 'w') as qc_summary_outfilecsv, open(qc_process_outfile,'w') as \
+                qc_process_outfilecsv:
 
             qcwrite = csv.DictWriter(qc_summary_outfilecsv, fieldnames=qc_fieldnames, delimiter='\t')
             qcwrite.writeheader()
@@ -132,7 +189,6 @@ def main():
                 qc_results['QC Date'] = date
                 qc_results['Collection'] = collection
                 qc_results['Sample QC'] = 'NA'
-
 
                 if os.path.exists(woid + '/' + status_file):
 
@@ -159,8 +215,11 @@ def main():
 
                             qc_results['QC Directory'] = qc_dir
                             qc_process['QC Directory'] = qc_dir
-                            os.chdir(qc_dir)
 
+                            subprocess.run(["/gscuser/awagner/bin/python3", "/gscuser/awollam/aw/ccdg_zero_restore.py",
+                                            "-w", woid])
+
+                            os.chdir(qc_dir)
                             subprocess.run(["/gscuser/zskidmor/bin/python3", "/gscuser/awollam/aw/tkb.py"])
 
                             attachments = 'attachments/'
@@ -339,6 +398,8 @@ def qc_status_update(woid, aligned_samples, collection):
         qc_update = {}
         for qc_status_line in qc_status_reader:
             if (qc_status_line['Launch Status'] == 'Launched' and  qc_status_line['QC Status'] == 'NONE'):
+                if qc_status_line['DNA'][0] == '0':
+                    qc_status_line['DNA'] = qc_status_line['DNA'][1:]
                 qc_update = qc_ready(qc_status_line['DNA'], woid, aligned_samples, collection)
                 master_qc_update = dict(list(qc_status_line.items()) + list(qc_update.items()))
                 qcs_temp_csv.writerow(master_qc_update)
@@ -460,7 +521,7 @@ def qc_run(woid):
                 else:
                     qcs_temp_csv.writerow(qc_status_line)
         print('\nQC was run on {} samples '.format(sample_number))
-        print('QC Directory is: {}/{}/{}\n'.format(qc_working_dir,woid, qc_dir))
+        print('QC Directory is: {}/{}/{}'.format(qc_working_dir,woid, qc_dir))
         os.rename(temp_status, qc_status)
 
     return qc_report, qc_dir
