@@ -3,7 +3,7 @@ from shutil import copyfile
 
 # current mmddyy
 mm_dd_yy = datetime.datetime.now().strftime("%m%d%y")
-#date mm-dd-yy
+# date mm-dd-yy
 date = datetime.datetime.now().strftime("%m-%d-%y")
 hour_min = datetime.datetime.now().strftime("%H%M")
 
@@ -12,10 +12,8 @@ os.chdir(qc_working_dir)
 
 cwd = os.getcwd()
 
-#for testing
-# collection = 'Cardiometabolic Disease - Costa Rican Cohort'
-
 woid_dirs = glob.glob('285*')
+
 
 def main():
     desc_str = """
@@ -281,7 +279,7 @@ def is_int(string):
         return True
 
 
-#query data base for collections id
+# query data base for collections id
 def assign_collections(woid):
 
     # get cod for woid
@@ -296,7 +294,7 @@ def assign_collections(woid):
     return collection
 
 
-#replace 'Sample Full Name' in header with 'DNA'
+# replace 'Sample Full Name' in header with 'DNA'
 def header_fix(compute_workflow_file):
 
     temp_file = 'cw.temp.tsv'
@@ -316,11 +314,12 @@ def header_fix(compute_workflow_file):
         return
 
 
-#command line create computeworkflow file with all statuses
+# command line create computeworkflow file with all statuses
 def user_make_computeworkflow(woid):
 
     outfile = woid+'.computeworkflow.'+mm_dd_yy+'.tsv'
-    print('\nComputeworkflow link:\nhttps://imp-lims.gsc.wustl.edu/entity/compute-workflow-execution?setup_wo_id={}\nEnter samples:'.format(woid))
+    print('\nComputeworkflow link:\nhttps://imp-lims.gsc.wustl.edu/entity/compute-workflow-execution?setup_wo_id={}'
+          '\nEnter samples:'.format(woid))
 
     compute_file_samples = []
     while True:
@@ -340,8 +339,8 @@ def user_make_computeworkflow(woid):
 
 
 # create compute workflow outfile and write header
-#create dir file and write header
-#populate alligned_samples with samples ready for QC
+# create dir file and write header
+# populate alligned_samples with samples ready for QC
 def filter_computeworkflow(computeworkflow_infile, woid):
 
     aligned_samples = dict()
@@ -349,7 +348,8 @@ def filter_computeworkflow(computeworkflow_infile, woid):
     computeworkflow_outfile = woid +'.cw.aligned.'+ mm_dd_yy+'.tsv'
     dir_file = woid+'.working.directory.tsv'
 
-    with open(computeworkflow_infile) as computecsv, open(computeworkflow_outfile, 'w') as outcsv, open(dir_file, 'w') as dircsv:
+    with open(computeworkflow_infile) as computecsv, open(computeworkflow_outfile, 'w') as outcsv, \
+            open(dir_file, 'w') as dircsv:
         reader = csv.DictReader(computecsv, delimiter="\t")
         compute_header_fields = reader.fieldnames
         writer = csv.DictWriter(outcsv, compute_header_fields, delimiter="\t")
@@ -360,14 +360,14 @@ def filter_computeworkflow(computeworkflow_infile, woid):
         for line in reader:
             if not line['DNA']:
                 continue
-            if (line['Status'] == 'completed') and (line['Protocol'] == 'Aligned Bam To BQSR Cram And VCF Without Genotype') \
-                    and (line['Work Order'] == woid):
+            if (line['Status'] == 'completed') and (line['Protocol'] == 'Aligned Bam To BQSR Cram And VCF Without '
+                                                                        'Genotype') and (line['Work Order'] == woid):
                 aligned_samples[line['DNA']] = line
 
     return aligned_samples
 
 
-#assign qc status to status csv, write computeworkflow for qc and directory file
+# assign qc status to status csv, write computeworkflow for qc and directory file
 def qc_ready(sample, woid, aligned_samples, collection):
 
     computeworkflow_outfile = woid + '.cw.aligned.' + mm_dd_yy + '.tsv'
@@ -394,7 +394,7 @@ def qc_ready(sample, woid, aligned_samples, collection):
     return qc_update
 
 
-#update status file for samples that meet qc criteria
+# update status file for samples that meet qc criteria
 def qc_status_update(woid, aligned_samples, collection):
 
     qc_status = woid + '.qcstatus.tsv'
@@ -410,7 +410,7 @@ def qc_status_update(woid, aligned_samples, collection):
 
         qc_update = {}
         for qc_status_line in qc_status_reader:
-            if (qc_status_line['Launch Status'] == 'Launched' and  qc_status_line['QC Status'] == 'NONE'):
+            if qc_status_line['Launch Status'] == 'Launched' and  qc_status_line['QC Status'] == 'NONE':
                 if qc_status_line['DNA'][0] == '0':
                     qc_status_line['DNA'] = qc_status_line['DNA'][1:]
                 qc_update = qc_ready(qc_status_line['DNA'], woid, aligned_samples, collection)
@@ -427,7 +427,7 @@ def make_dir(directory_in, sample_number):
     i = 1
     control = 0
 
-    while (directory_in):
+    while directory_in:
         if not os.path.exists(directory_in):
             os.makedirs(directory_in)
             new_directory = directory_in
@@ -445,13 +445,13 @@ def make_dir(directory_in, sample_number):
     return new_directory
 
 
-#add qc directory and sample pass/fail status to samples that have been qc'd
+# add qc directory and sample pass/fail status to samples that have been qc'd
 def metrics_add(sample_name, qc_directory, woid, sample_number):
     with open(qc_directory + '/' + woid + '.' + str(sample_number) + '.' + mm_dd_yy + '.build38.all.tsv', 'r') as qcallcsv:
         qc_metrics_reader = csv.DictReader(qcallcsv, delimiter="\t")
         metrics_results = {}
         for line in qc_metrics_reader:
-            if (sample_name == line['DNA']):
+            if sample_name == line['DNA']:
                 if line['QC Failed Metrics'] == 'NA':
                     metrics_results['QC Failed Metrics'] = 'QC_PASS'
                     metrics_results['QC Directory'] = cwd + '/' + qc_directory
@@ -461,7 +461,7 @@ def metrics_add(sample_name, qc_directory, woid, sample_number):
     return metrics_results
 
 
-#run qc on samples ready for qc
+# run qc on samples ready for qc
 def qc_run(woid):
 
     computeworkflow_outfile = woid + '.cw.aligned.' + mm_dd_yy + '.tsv'
@@ -514,7 +514,7 @@ def qc_run(woid):
         for line in qc_report:
             print(line)
 
-        ##open qc status file again read only
+        # open qc status file again read only
         # open temp file to write everything to
         # open metrics file,
         with open(qc_status, 'r') as qcstatuscsv, open(temp_status, 'w') as qcstatus_temp_csv:
@@ -539,7 +539,7 @@ def qc_run(woid):
     return qc_report, qc_dir
 
 
-#add admin project to all file in attachment dir
+# add admin project to all file in attachment dir
 def add_collections_allfile(all_file, collection):
 
     all_temp_file = all_file + '.temp'
