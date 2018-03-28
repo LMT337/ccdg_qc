@@ -195,6 +195,7 @@ def main():
 
                     print('{} exists, starting QC:'.format(status_file))
                     os.chdir(woid)
+                    cwd = os.getcwd()
 
                     # run qcl
                     aligned_samples = filter_computeworkflow(qc_working_dir+'/'+computeworkflow_all_file, woid)
@@ -214,8 +215,8 @@ def main():
                             qc_process['Collection'] = collection
                             qc_process['QC Date'] = date
 
-                            qc_results['QC Directory'] = qc_dir
-                            qc_process['QC Directory'] = qc_dir
+                            qc_results['QC Directory'] = cwd + '/' + qc_dir
+                            qc_process['QC Directory'] = cwd + '/' + qc_dir
 
                             subprocess.run(["/gscuser/awagner/bin/python3", "/gscuser/awollam/aw/ccdg_zero_restore.py",
                                             "-w", woid])
