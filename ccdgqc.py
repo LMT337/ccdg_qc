@@ -7,7 +7,7 @@ mm_dd_yy = datetime.datetime.now().strftime("%m%d%y")
 date = datetime.datetime.now().strftime("%m-%d-%y")
 hour_min = datetime.datetime.now().strftime("%H%M")
 
-qc_working_dir = '/gscmnt/gc2783/qc/CCDGWGS2018/dev'
+qc_working_dir = '/gscmnt/gc2783/qc/CCDGWGS2018'
 os.chdir(qc_working_dir)
 
 cwd = os.getcwd()
@@ -156,7 +156,11 @@ def main():
                     print('No {} found, skipping QC for {}.'.format(status_file, woid))
                     print('QC FINISHED\n----------')
 
-    if (args.f):
+    if args.f:
+
+        if not os.path.exists(os.getcwd() + '/' + args.f):
+            print('{}/{} file not found'.format(os.getcwd(),args.f))
+            quit()
 
         qc_fieldnames = ['WOID', 'Collection', 'Sample QC', 'QC Directory', 'QC Date']
 
@@ -234,8 +238,7 @@ def main():
                             os.rename(qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.build38.all.tsv.backup')
                             os.rename(qc_file_prefix + '.build38.totalBasesKB.tsv', qc_file_prefix + '.build38.all.tsv')
 
-                            qc_files = [qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.qcpass.samplemap.tsv',
-                                        qc_file_prefix + '.report']
+                            qc_files = [qc_file_prefix + '.build38.all.tsv', qc_file_prefix + '.report']
 
                             num_fail_lines = sum(1 for line in open(qc_file_prefix + '.build38.fail.tsv'))
                             if num_fail_lines > 1:
