@@ -135,7 +135,7 @@ def main():
                                 qc_files.append(qc_file_prefix + '.build38.fail.tsv')
 
                             num_samplemap_lines = sum(1 for line in open(qc_file_prefix + '.qcpass.samplemap.tsv'))
-                            if num_samplemap_lines > 1:
+                            if num_samplemap_lines >= 1:
                                 qc_files.append(qc_file_prefix + '.qcpass.samplemap.tsv')
 
                             print('Files copied to attachments directory:')
