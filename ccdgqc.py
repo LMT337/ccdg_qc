@@ -1,4 +1,4 @@
-import os, subprocess, csv, datetime, argparse, webbrowser, glob
+import os, subprocess, csv, datetime, argparse, webbrowser, glob, time
 from shutil import copyfile
 
 # current mmddyy
@@ -7,7 +7,7 @@ mm_dd_yy = datetime.datetime.now().strftime("%m%d%y")
 date = datetime.datetime.now().strftime("%m-%d-%y")
 hour_min = datetime.datetime.now().strftime("%H%M")
 
-qc_working_dir = '/gscmnt/gc2783/qc/CCDGWGS2018'
+qc_working_dir = '/gscmnt/gc2783/qc/CCDGWGS2018/'
 os.chdir(qc_working_dir)
 
 cwd = os.getcwd()
@@ -54,7 +54,7 @@ def main():
             woid = input('----------\nWork order id (enter to exit):\n').strip()
 
             # if not woid:
-            if (len(woid) == 0):
+            if len(woid) == 0:
                 print('Exiting ccdg launcher.')
                 break
             try:
@@ -180,7 +180,6 @@ def main():
 
             for woid in filter(is_int, woid_dirs):
 
-                collection = assign_collections(woid)
                 qc_results = dict()
                 qc_process = dict()
 
@@ -188,14 +187,16 @@ def main():
                 os.chdir(qc_working_dir)
 
                 print('----------\n{} QC:'.format(woid))
-                print('Using \'{}\' for collection.'.format(collection))
 
                 qc_results['WOID'] = woid
                 qc_results['QC Date'] = date
-                qc_results['Collection'] = collection
                 qc_results['Sample QC'] = 'NA'
 
                 if os.path.exists(woid + '/' + status_file):
+
+                    collection = assign_collections(woid)
+                    qc_results['Collection'] = collection
+                    print('Using \'{}\' for collection.'.format(collection))
 
                     print('{} exists, starting QC:'.format(status_file))
                     os.chdir(woid)
@@ -259,7 +260,6 @@ def main():
                             os.chdir(attachments)
                             add_collections_allfile(qc_file_prefix + '.build38.all.tsv', collection)
 
-
                     qcwrite.writerow(qc_results)
                     if len(qc_process) != 0:
                         qcprocess_write.writerow(qc_process)
@@ -268,10 +268,12 @@ def main():
 
                 else:
                     print('No {} found, skipping QC for {}.'.format(status_file, woid))
+                    qc_results['Collection'] = 'Analysis work order'
                     qc_results['QC Directory'] = 'NA'
                     qc_results['Sample QC'] = 'NA'
                     qcwrite.writerow(qc_results)
                     print('QC FINISHED\n----------')
+                    time.sleep(0.25)
 
 
 def is_int(string):
