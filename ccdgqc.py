@@ -1,4 +1,4 @@
-import os, subprocess, csv, datetime, argparse, webbrowser, glob, time
+import os, subprocess, csv, datetime, argparse, webbrowser, glob
 from shutil import copyfile
 
 # current mmddyy
@@ -41,7 +41,7 @@ def main():
         open_url = input("\nopen compute workflow url in firefox? (y/n)")
         if open_url == 'y':
             webbrowser.get(firefox_path).open(compute_workflow_url)
-        print('\ncompute workflow url: \n{}\n'.format(compute_workflow_url))
+        print('compute workflow url: \n{}\n'.format(compute_workflow_url))
         print('Save compute workflow file as: \ncomputeworkflow.all.{}.tsv\n'.format(mm_dd_yy))
         print('create compute workflow with cat:\ncat > computeworkflow.all.{}.tsv\n'.format(mm_dd_yy))
         quit()
@@ -186,13 +186,13 @@ def main():
                 status_file = woid + '.qcstatus.tsv'
                 os.chdir(qc_working_dir)
 
-                print('----------\n{} QC:'.format(woid))
-
                 qc_results['WOID'] = woid
                 qc_results['QC Date'] = date
                 qc_results['Sample QC'] = 'NA'
 
                 if os.path.exists(woid + '/' + status_file):
+
+                    print('----------\n{} QC:'.format(woid))
 
                     collection = assign_collections(woid)
                     qc_results['Collection'] = collection
@@ -267,13 +267,10 @@ def main():
                     print('QC FINISHED\n----------')
 
                 else:
-                    print('No {} found, skipping QC for {}.'.format(status_file, woid))
                     qc_results['Collection'] = 'Analysis work order'
                     qc_results['QC Directory'] = 'NA'
                     qc_results['Sample QC'] = 'NA'
                     qcwrite.writerow(qc_results)
-                    print('QC FINISHED\n----------')
-                    time.sleep(0.25)
 
 
 def is_int(string):
